@@ -77,11 +77,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "StoryNest — Turn motherhood memories into magical storybooks" },
       { name: "description", content: "Upload pregnancy, baby and family photos. Add memories. StoryNest turns them into a personalized illustrated storybook to save, share, or read at bedtime." },
       { name: "author", content: "StoryNest" },
-      { property: "og:title", content: "StoryNest — Magical motherhood storybooks" },
-      { property: "og:description", content: "Turn your motherhood memories into a personalized illustrated storybook." },
+      { property: "og:title", content: "StoryNest — Turn motherhood memories into magical storybooks" },
+      { property: "og:description", content: "Upload pregnancy, baby and family photos. Add memories. StoryNest turns them into a personalized illustrated storybook to save, share, or read at bedtime." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "StoryNest — Turn motherhood memories into magical storybooks" },
+      { name: "twitter:description", content: "Upload pregnancy, baby and family photos. Add memories. StoryNest turns them into a personalized illustrated storybook to save, share, or read at bedtime." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d6d265ca-cafc-4b17-ac0c-b274798aacee/id-preview-7e6b5da3--2b3647fe-26e3-4703-9448-ebc3ac2b06a1.lovable.app-1778304258982.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d6d265ca-cafc-4b17-ac0c-b274798aacee/id-preview-7e6b5da3--2b3647fe-26e3-4703-9448-ebc3ac2b06a1.lovable.app-1778304258982.png" },
     ],
     links: [
       {
