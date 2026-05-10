@@ -202,7 +202,23 @@ function Create() {
         )}
 
         {step === 1 && (
-          <Step title="Upload your photos" subtitle="Upload 3–8 photos for the best storybook.">
+          <Step
+            title="Upload your photos"
+            subtitle="Start with one special cover photo, then add 3–8 more memories."
+          >
+            <div className="mb-6">
+              <Label className="text-sm font-medium">
+                ✨ Your storybook cover photo
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">
+                Pick one extra-special picture — this becomes the first page of your book.
+              </p>
+              <CoverUploader cover={coverPhoto} setCover={setCoverPhoto} />
+            </div>
+            <Label className="text-sm font-medium">More memory photos</Label>
+            <p className="text-xs text-muted-foreground mt-1 mb-3">
+              These become the inside pages of your story.
+            </p>
             <PhotoUploader photos={photos} setPhotos={setPhotos} />
           </Step>
         )}
