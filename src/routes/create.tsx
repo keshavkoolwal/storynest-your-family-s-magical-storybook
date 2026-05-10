@@ -310,14 +310,14 @@ function GeneratingAnimation() {
   );
 }
 
-function PhotoUploader({ photos, setPhotos }: { photos: { url: string; label?: string; name: string }[]; setPhotos: (p: { url: string; label?: string; name: string }[]) => void }) {
+function PhotoUploader({ photos, setPhotos }: { photos: { url: string; label?: string; name: string; file?: File }[]; setPhotos: (p: { url: string; label?: string; name: string; file?: File }[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
     const arr = Array.from(files).slice(0, 8 - photos.length);
-    const next = arr.map((f) => ({ url: URL.createObjectURL(f), name: f.name }));
+    const next = arr.map((f) => ({ url: URL.createObjectURL(f), name: f.name, file: f }));
     setPhotos([...photos, ...next]);
   };
 
