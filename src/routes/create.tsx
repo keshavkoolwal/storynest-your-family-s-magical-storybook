@@ -123,6 +123,23 @@ function Create() {
 
       const sources = photos.filter((p) => p.file);
       let images: string[] = [];
+      let coverImage: string | undefined;
+
+      if (coverPhoto) {
+        const coverData = await fileToDataUrl(coverPhoto.file);
+        const compactCover = await downscale(coverData, 1024, 0.86);
+        coverImage = compactCover;
+        const coverPrompt = `Transform the attached photograph into a beautiful storybook COVER in ${style}. CRITICAL: keep the SAME people from the photo — preserve faces, hair, skin tone, body shape, clothing colors, and overall composition/pose. Do NOT invent new characters. Re-render this exact photo as a tender, magical book-cover illustration with soft glowing light, dreamy background, family-friendly. No text, no title, no logos, no watermarks.`;
+        try {
+          const { url } = await cartoonify({
+            data: { imageDataUrl: compactCover, prompt: coverPrompt },
+          });
+          coverImage = await downscale(url, 1024, 0.86);
+        } catch (e) {
+          console.error("cover cartoonify failed", e);
+        }
+      }
+
       if (sources.length > 0) {
         const dataUrls = await Promise.all(sources.map((p) => fileToDataUrl(p.file!)));
         const compactUploads = await Promise.all(dataUrls.map((url) => downscale(url, 960, 0.84)));
@@ -157,6 +174,7 @@ function Create() {
         dedication,
         prompts,
         images,
+        coverImage,
       });
       saveStory(story);
       toast.success("Your storybook is ready ✨");
