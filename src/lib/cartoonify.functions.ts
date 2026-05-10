@@ -16,14 +16,14 @@ export const cartoonifyImage = createServerFn({ method: "POST" })
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
+        model: "google/gemini-3.1-flash-image-preview",
         modalities: ["image", "text"],
         messages: [
           {
             role: "user",
             content: [
-              { type: "text", text: data.prompt },
               { type: "image_url", image_url: { url: data.imageDataUrl } },
+              { type: "text", text: data.prompt },
             ],
           },
         ],
