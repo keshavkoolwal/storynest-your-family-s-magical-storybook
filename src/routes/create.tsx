@@ -59,11 +59,11 @@ function Create() {
 
   const canNext = useMemo(() => {
     if (step === 0) return !!type;
-    if (step === 1) return photos.length > 0;
+    if (step === 1) return !!coverPhoto && photos.length > 0;
     if (step === 4) return !!vibe;
     if (step === 5) return !!illustration;
     return true;
-  }, [step, type, photos, vibe, illustration]);
+  }, [step, type, coverPhoto, photos, vibe, illustration]);
 
   const goNext = () => {
     if (step === STEPS.length - 1) return;
