@@ -594,3 +594,57 @@ function PhotoUploader({
     </div>
   );
 }
+
+function CoverUploader({
+  cover,
+  setCover,
+}: {
+  cover: { url: string; name: string; file: File } | null;
+  setCover: (c: { url: string; name: string; file: File } | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const onPick = (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    setCover({ url: URL.createObjectURL(f), name: f.name, file: f });
+  };
+  if (cover) {
+    return (
+      <div className="cozy-card p-3 flex items-center gap-3">
+        <img
+          src={cover.url}
+          alt="Cover"
+          className="h-20 w-20 rounded-2xl object-cover ring-2 ring-primary/40"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-display text-sm truncate">{cover.name}</p>
+          <p className="text-xs text-muted-foreground">Your storybook cover ✨</p>
+        </div>
+        <button
+          onClick={() => setCover(null)}
+          className="h-8 w-8 rounded-full bg-secondary grid place-items-center shrink-0"
+          aria-label="Remove cover photo"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div
+      onClick={() => inputRef.current?.click()}
+      className="rounded-3xl border-2 border-dashed border-primary/40 bg-primary/5 p-6 text-center cursor-pointer hover:bg-primary/10 transition"
+    >
+      <Sparkles className="h-6 w-6 mx-auto text-primary" />
+      <p className="font-display mt-2">Tap to upload your cover photo</p>
+      <p className="text-xs text-muted-foreground">One special picture for the front page</p>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => onPick(e.target.files)}
+      />
+    </div>
+  );
+}
