@@ -122,26 +122,46 @@ export function generateMockStory(input: {
     : input.type === "shower" ? `A Little Wish for ${child}`
     : `The Story of ${child}`;
 
+  const mom = input.momName?.trim() || "Mama";
+  const lc = (s?: string) => (s ? s.trim().replace(/[.!?]+$/, "").toLowerCase() : "");
+  const what = lc(input.prompts.what);
+  const who = lc(input.prompts.who);
+  const special = lc(input.prompts.special);
+  const feeling = lc(input.prompts.feeling);
+  const message = input.prompts.message?.trim();
+
   const pages: StoryPage[] = [
-    { text: input.prompts.what
-        ? `It started like this — ${input.prompts.what.toLowerCase()}.`
-        : `Before you were in our arms, you were already in our hearts.`,
+    { text: `Once, in a quiet little corner of the world, a wish curled up beside ${mom}'s heart and decided to stay. ${
+        what ? `It began the day ${what} — a moment so small, and yet, somehow, big enough to change everything.` :
+        `Long before ${child} could be held, ${child} was already loved, already imagined, already humming softly inside every one of ${mom}'s dreams.`
+      }`,
       image: pregnancyImg },
-    { text: input.prompts.special
-        ? `What made it special was simple: ${input.prompts.special.toLowerCase()}.`
-        : `Mama smiled every time she imagined the little adventures waiting for us.`,
+    { text: `The days grew slower and sweeter, the way honey moves in winter. ${mom} would rest a hand on her heart and whisper hello to the tiny soul who hadn't arrived yet, but already felt like home. ${
+        feeling ? `It all felt ${feeling} — a kind of soft, glowing hush only love knows how to make.` :
+        `Every sunrise felt like a small promise, and every quiet evening felt like a lullaby waiting to be sung.`
+      }`,
       image: coverImg },
-    { text: input.prompts.who
-        ? `And there we were — ${input.prompts.who} — soft, silly, and full of love.`
-        : `Our family grew not just in size, but in love, laughter, and tiny dreams.`,
+    { text: `${
+        special ? `What made it most magical was simply this: ${special}. Such a little thing, and yet it sparkled like starlight tucked into an ordinary day.` :
+        `There was magic in the ordinary — in warm tea, in folded tiny socks, in the hush of a hand resting on a growing belly. The whole world seemed to lean a little closer, listening for ${child}.`
+      }`,
+      image: pregnancyImg },
+    { text: `${
+        who ? `And then there were the people who loved ${child} first — ${input.prompts.who}. They gathered like soft lanterns, each one carrying a different shade of love, all of them glowing for the same little soul.` :
+        `Family gathered like soft lanterns around the wish — each one carrying a different shade of love, all of them glowing for the same little soul.`
+      } Together, they built a nest out of laughter, late-night talks, and quietly folded baby clothes.`,
       image: familyImg },
-    { text: input.prompts.feeling
-        ? `It felt ${input.prompts.feeling.toLowerCase()}, like the world had hushed just for us.`
-        : `And when you arrived, the whole world felt softer, brighter, and full of magic.`,
+    { text: `When the day finally came, the whole world seemed to tiptoe. The clocks slowed. The light went golden. And in one breath-held moment, the wish became a person — small, perfect, and impossibly real. ${
+        feeling ? `It felt ${feeling}, the way only the very best moments can.` :
+        `Everything that had ever been hoped for fit, somehow, into one tiny pair of hands.`
+      }`,
       image: bedtimeImg },
-    { text: input.prompts.message
-        ? `Remember always, ${child}: ${input.prompts.message}`
-        : `This is your story, little one — and it is only the beginning.`,
+    { text: `From that night on, the house was never quite the same. There were sleepy songs at 3am, and tiny toes that curled like little question marks. There were yawns and giggles and the soft, surprised sound of new love learning its own name. And ${mom} — oh, ${mom} — she had never felt more tired, or more whole.`,
+      image: familyImg },
+    { text: `${
+        message ? `So remember, sweet ${child}, what ${mom} wants you to carry always: ${message}` :
+        `So remember, sweet ${child}: you were wanted before you were known, loved before you were held, and woven into this family by a thousand small, shining moments.`
+      } This story is yours now — a little keepsake of where you began. And the rest of it, my love, is only just unfolding.`,
       image: coverImg },
   ];
 
