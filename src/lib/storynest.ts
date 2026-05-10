@@ -113,6 +113,7 @@ export function saveProfile(p: Profile) {
 export function generateMockStory(input: {
   type: string; childName?: string; momName?: string; vibe: string; illustration: string; dedication?: string;
   prompts: { what: string; who: string; special: string; feeling: string; message: string };
+  images?: string[];
 }): Story {
   const child = input.childName?.trim() || "little one";
   const title = input.type === "pregnancy" ? `The Day You Became Our Little Star`
