@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Upload, X, Mic, Sparkles, Check } from "lucide-react";
 import { STORY_TYPES, VIBES, ILLUSTRATIONS, FAMILY_TYPES, PHOTO_LABELS, generateMockStory, saveStory } from "@/lib/storynest";
+import { cartoonifyImage } from "@/lib/cartoonify.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 type Search = { type?: string };
