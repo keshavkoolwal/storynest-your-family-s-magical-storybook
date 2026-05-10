@@ -166,6 +166,13 @@ export function generateMockStory(input: {
       image: coverImg },
   ];
 
+  // If custom cartoon images were provided (from user's photos), override the stock images.
+  if (input.images && input.images.length > 0) {
+    const imgs = input.images;
+    pages.forEach((p, i) => { p.image = imgs[i % imgs.length]; });
+  }
+
+
   return {
     id: crypto.randomUUID(),
     title,
