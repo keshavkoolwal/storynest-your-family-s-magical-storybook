@@ -25,7 +25,7 @@ function Create() {
   const search = Route.useSearch();
   const [step, setStep] = useState(0);
   const [type, setType] = useState<string>(search.type || "");
-  const [photos, setPhotos] = useState<{ url: string; label?: string; name: string }[]>([]);
+  const [photos, setPhotos] = useState<{ url: string; label?: string; name: string; file?: File }[]>([]);
   const [prompts, setPrompts] = useState({ what: "", who: "", special: "", feeling: "", message: "" });
   const [family, setFamily] = useState("");
   const [childName, setChildName] = useState("");
