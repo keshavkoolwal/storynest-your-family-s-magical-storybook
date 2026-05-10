@@ -181,7 +181,7 @@ export function generateMockStory(input: {
     type: input.type,
     vibe: input.vibe,
     illustration: input.illustration,
-    cover: input.images?.[0] || coverImg,
+    cover: input.coverImage || input.images?.[0] || coverImg,
     pages,
     createdAt: new Date().toISOString(),
   };
