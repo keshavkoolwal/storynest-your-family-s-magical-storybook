@@ -102,19 +102,26 @@ function Create() {
       let images: string[] = [];
       if (sources.length > 0) {
         const dataUrls = await Promise.all(sources.map((p) => fileToDataUrl(p.file!)));
-        const tasks = sceneHints.map(async (hint, i) => {
-          const src = dataUrls[i % dataUrls.length];
+        const compactUploads = await Promise.all(dataUrls.map((url) => downscale(url, 960, 0.84)));
+
+        // Always personalize the story with the uploaded photos. AI cartoonification is an enhancement,
+        // but if it fails or times out, the book must still use the family's real pictures — never stock art.
+        images = sceneHints.map((_, i) => compactUploads[i % compactUploads.length]);
+
+        const cartoonImages: string[] = [];
+        for (let i = 0; i < sceneHints.length; i += 1) {
+          const hint = sceneHints[i];
+          const src = compactUploads[i % compactUploads.length];
           const prompt = `Transform the attached photograph into a ${style}. CRITICAL: keep the SAME people from the photo — preserve their faces, hair, skin tone, body shape, clothing colors, and the overall composition/pose of the original photo. Do NOT invent new characters. Re-render the existing photo in cartoon form, like a stylized illustration of THIS exact image. Mood: ${hint}. Family-friendly, warm, tender, no text, no logos, no watermarks.`;
           try {
             const { url } = await cartoonify({ data: { imageDataUrl: src, prompt } });
-            return await downscale(url);
+            cartoonImages.push(await downscale(url));
           } catch (e) {
             console.error("cartoonify failed", e);
-            return null;
           }
-        });
-        const results = await Promise.all(tasks);
-        images = results.filter((x): x is string => !!x);
+        }
+
+        if (cartoonImages.length > 0) images = sceneHints.map((_, i) => cartoonImages[i % cartoonImages.length]);
       }
 
       const story = generateMockStory({ type, vibe, illustration, childName, momName, dedication, prompts, images });
