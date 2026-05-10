@@ -114,6 +114,7 @@ export function generateMockStory(input: {
   type: string; childName?: string; momName?: string; vibe: string; illustration: string; dedication?: string;
   prompts: { what: string; who: string; special: string; feeling: string; message: string };
   images?: string[];
+  coverImage?: string;
 }): Story {
   const child = input.childName?.trim() || "little one";
   const title = input.type === "pregnancy" ? `The Day You Became Our Little Star`
@@ -180,7 +181,7 @@ export function generateMockStory(input: {
     type: input.type,
     vibe: input.vibe,
     illustration: input.illustration,
-    cover: input.images?.[0] || coverImg,
+    cover: input.coverImage || input.images?.[0] || coverImg,
     pages,
     createdAt: new Date().toISOString(),
   };

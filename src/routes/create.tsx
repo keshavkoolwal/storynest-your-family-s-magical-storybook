@@ -35,6 +35,9 @@ function Create() {
   const search = Route.useSearch();
   const [step, setStep] = useState(0);
   const [type, setType] = useState<string>(search.type || "");
+  const [coverPhoto, setCoverPhoto] = useState<
+    { url: string; name: string; file: File } | null
+  >(null);
   const [photos, setPhotos] = useState<
     { url: string; label?: string; name: string; file?: File }[]
   >([]);
@@ -56,11 +59,11 @@ function Create() {
 
   const canNext = useMemo(() => {
     if (step === 0) return !!type;
-    if (step === 1) return photos.length > 0;
+    if (step === 1) return !!coverPhoto && photos.length > 0;
     if (step === 4) return !!vibe;
     if (step === 5) return !!illustration;
     return true;
-  }, [step, type, photos, vibe, illustration]);
+  }, [step, type, coverPhoto, photos, vibe, illustration]);
 
   const goNext = () => {
     if (step === STEPS.length - 1) return;
@@ -120,6 +123,23 @@ function Create() {
 
       const sources = photos.filter((p) => p.file);
       let images: string[] = [];
+      let coverImage: string | undefined;
+
+      if (coverPhoto) {
+        const coverData = await fileToDataUrl(coverPhoto.file);
+        const compactCover = await downscale(coverData, 1024, 0.86);
+        coverImage = compactCover;
+        const coverPrompt = `Transform the attached photograph into a beautiful storybook COVER in ${style}. CRITICAL: keep the SAME people from the photo — preserve faces, hair, skin tone, body shape, clothing colors, and overall composition/pose. Do NOT invent new characters. Re-render this exact photo as a tender, magical book-cover illustration with soft glowing light, dreamy background, family-friendly. No text, no title, no logos, no watermarks.`;
+        try {
+          const { url } = await cartoonify({
+            data: { imageDataUrl: compactCover, prompt: coverPrompt },
+          });
+          coverImage = await downscale(url, 1024, 0.86);
+        } catch (e) {
+          console.error("cover cartoonify failed", e);
+        }
+      }
+
       if (sources.length > 0) {
         const dataUrls = await Promise.all(sources.map((p) => fileToDataUrl(p.file!)));
         const compactUploads = await Promise.all(dataUrls.map((url) => downscale(url, 960, 0.84)));
@@ -154,6 +174,7 @@ function Create() {
         dedication,
         prompts,
         images,
+        coverImage,
       });
       saveStory(story);
       toast.success("Your storybook is ready ✨");
@@ -199,7 +220,23 @@ function Create() {
         )}
 
         {step === 1 && (
-          <Step title="Upload your photos" subtitle="Upload 3–8 photos for the best storybook.">
+          <Step
+            title="Upload your photos"
+            subtitle="Start with one special cover photo, then add 3–8 more memories."
+          >
+            <div className="mb-6">
+              <Label className="text-sm font-medium">
+                ✨ Your storybook cover photo
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">
+                Pick one extra-special picture — this becomes the first page of your book.
+              </p>
+              <CoverUploader cover={coverPhoto} setCover={setCoverPhoto} />
+            </div>
+            <Label className="text-sm font-medium">More memory photos</Label>
+            <p className="text-xs text-muted-foreground mt-1 mb-3">
+              These become the inside pages of your story.
+            </p>
             <PhotoUploader photos={photos} setPhotos={setPhotos} />
           </Step>
         )}
@@ -554,6 +591,60 @@ function PhotoUploader({
       <p className="text-xs text-muted-foreground mt-3">
         {photos.length}/8 photos · we recommend 3–8
       </p>
+    </div>
+  );
+}
+
+function CoverUploader({
+  cover,
+  setCover,
+}: {
+  cover: { url: string; name: string; file: File } | null;
+  setCover: (c: { url: string; name: string; file: File } | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const onPick = (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    setCover({ url: URL.createObjectURL(f), name: f.name, file: f });
+  };
+  if (cover) {
+    return (
+      <div className="cozy-card p-3 flex items-center gap-3">
+        <img
+          src={cover.url}
+          alt="Cover"
+          className="h-20 w-20 rounded-2xl object-cover ring-2 ring-primary/40"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-display text-sm truncate">{cover.name}</p>
+          <p className="text-xs text-muted-foreground">Your storybook cover ✨</p>
+        </div>
+        <button
+          onClick={() => setCover(null)}
+          className="h-8 w-8 rounded-full bg-secondary grid place-items-center shrink-0"
+          aria-label="Remove cover photo"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div
+      onClick={() => inputRef.current?.click()}
+      className="rounded-3xl border-2 border-dashed border-primary/40 bg-primary/5 p-6 text-center cursor-pointer hover:bg-primary/10 transition"
+    >
+      <Sparkles className="h-6 w-6 mx-auto text-primary" />
+      <p className="font-display mt-2">Tap to upload your cover photo</p>
+      <p className="text-xs text-muted-foreground">One special picture for the front page</p>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => onPick(e.target.files)}
+      />
     </div>
   );
 }
