@@ -104,7 +104,7 @@ function Create() {
         const dataUrls = await Promise.all(sources.map((p) => fileToDataUrl(p.file!)));
         const tasks = sceneHints.map(async (hint, i) => {
           const src = dataUrls[i % dataUrls.length];
-          const prompt = `Redraw this photo as a ${style}. ${hint}. Family-friendly, warm and tender, no text, no logos, keep recognizable likeness of the people but in cartoon form.`;
+          const prompt = `Transform the attached photograph into a ${style}. CRITICAL: keep the SAME people from the photo — preserve their faces, hair, skin tone, body shape, clothing colors, and the overall composition/pose of the original photo. Do NOT invent new characters. Re-render the existing photo in cartoon form, like a stylized illustration of THIS exact image. Mood: ${hint}. Family-friendly, warm, tender, no text, no logos, no watermarks.`;
           try {
             const { url } = await cartoonify({ data: { imageDataUrl: src, prompt } });
             return await downscale(url);
