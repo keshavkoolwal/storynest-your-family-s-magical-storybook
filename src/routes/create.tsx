@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Upload, X, Mic, Sparkles, Check } from "lucide-react";
 import { STORY_TYPES, VIBES, ILLUSTRATIONS, FAMILY_TYPES, PHOTO_LABELS, generateMockStory, saveStory } from "@/lib/storynest";
+import { cartoonifyImage } from "@/lib/cartoonify.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 type Search = { type?: string };
@@ -23,7 +25,7 @@ function Create() {
   const search = Route.useSearch();
   const [step, setStep] = useState(0);
   const [type, setType] = useState<string>(search.type || "");
-  const [photos, setPhotos] = useState<{ url: string; label?: string; name: string }[]>([]);
+  const [photos, setPhotos] = useState<{ url: string; label?: string; name: string; file?: File }[]>([]);
   const [prompts, setPrompts] = useState({ what: "", who: "", special: "", feeling: "", message: "" });
   const [family, setFamily] = useState("");
   const [childName, setChildName] = useState("");
@@ -48,13 +50,82 @@ function Create() {
   };
   const goBack = () => setStep((s) => Math.max(s - 1, 0));
 
+  const cartoonify = useServerFn(cartoonifyImage);
+
   const generate = async () => {
     setGenerating(true);
-    await new Promise((r) => setTimeout(r, 2800));
-    const story = generateMockStory({ type, vibe, illustration, childName, momName, dedication, prompts });
-    saveStory(story);
-    toast.success("Your storybook is ready ✨");
-    navigate({ to: "/story/$id", params: { id: story.id } });
+    try {
+      const styleMap: Record<string, string> = {
+        pastel: "soft pastel cartoon illustration, gentle pinks and creams, picture-book style",
+        watercolor: "dreamy watercolor storybook illustration, soft washes, hand-painted feel",
+        cozy: "cozy bedtime storybook illustration, warm lamplight, indigo and lavender tones",
+        doodle: "cute hand-drawn doodle illustration, simple ink lines, warm cream background",
+        soft3d: "soft 3D cartoon render, rounded shapes, plush pixar-like styling",
+        classic: "classic storybook illustration, vintage children's book art, gentle earth tones",
+      };
+      const style = styleMap[illustration] || styleMap.pastel;
+      const sceneHints = [
+        "tender opening scene, glowing warm light",
+        "quiet contemplative moment, soft morning light",
+        "magical everyday detail, sparkles, cozy interior",
+        "family gathered together with love and warmth",
+        "golden hour, joyful arrival, soft confetti of light",
+        "sleepy nighttime scene, stars and lullaby mood",
+        "closing keepsake scene, dreamy and hopeful",
+      ];
+
+      const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result as string);
+        r.onerror = rej;
+        r.readAsDataURL(f);
+      });
+
+      const downscale = (dataUrl: string, maxW = 720, quality = 0.82) =>
+        new Promise<string>((res) => {
+          const img = new Image();
+          img.onload = () => {
+            const scale = Math.min(1, maxW / img.width);
+            const w = Math.round(img.width * scale);
+            const h = Math.round(img.height * scale);
+            const c = document.createElement("canvas");
+            c.width = w; c.height = h;
+            const ctx = c.getContext("2d")!;
+            ctx.drawImage(img, 0, 0, w, h);
+            res(c.toDataURL("image/jpeg", quality));
+          };
+          img.onerror = () => res(dataUrl);
+          img.src = dataUrl;
+        });
+
+      const sources = photos.filter((p) => p.file);
+      let images: string[] = [];
+      if (sources.length > 0) {
+        const dataUrls = await Promise.all(sources.map((p) => fileToDataUrl(p.file!)));
+        const tasks = sceneHints.map(async (hint, i) => {
+          const src = dataUrls[i % dataUrls.length];
+          const prompt = `Redraw this photo as a ${style}. ${hint}. Family-friendly, warm and tender, no text, no logos, keep recognizable likeness of the people but in cartoon form.`;
+          try {
+            const { url } = await cartoonify({ data: { imageDataUrl: src, prompt } });
+            return await downscale(url);
+          } catch (e) {
+            console.error("cartoonify failed", e);
+            return null;
+          }
+        });
+        const results = await Promise.all(tasks);
+        images = results.filter((x): x is string => !!x);
+      }
+
+      const story = generateMockStory({ type, vibe, illustration, childName, momName, dedication, prompts, images });
+      saveStory(story);
+      toast.success("Your storybook is ready ✨");
+      navigate({ to: "/story/$id", params: { id: story.id } });
+    } catch (e) {
+      console.error(e);
+      toast.error("Something went wrong creating your storybook.");
+      setGenerating(false);
+    }
   };
 
   return (
@@ -256,14 +327,14 @@ function GeneratingAnimation() {
   );
 }
 
-function PhotoUploader({ photos, setPhotos }: { photos: { url: string; label?: string; name: string }[]; setPhotos: (p: { url: string; label?: string; name: string }[]) => void }) {
+function PhotoUploader({ photos, setPhotos }: { photos: { url: string; label?: string; name: string; file?: File }[]; setPhotos: (p: { url: string; label?: string; name: string; file?: File }[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
     const arr = Array.from(files).slice(0, 8 - photos.length);
-    const next = arr.map((f) => ({ url: URL.createObjectURL(f), name: f.name }));
+    const next = arr.map((f) => ({ url: URL.createObjectURL(f), name: f.name, file: f }));
     setPhotos([...photos, ...next]);
   };
 

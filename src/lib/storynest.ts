@@ -113,6 +113,7 @@ export function saveProfile(p: Profile) {
 export function generateMockStory(input: {
   type: string; childName?: string; momName?: string; vibe: string; illustration: string; dedication?: string;
   prompts: { what: string; who: string; special: string; feeling: string; message: string };
+  images?: string[];
 }): Story {
   const child = input.childName?.trim() || "little one";
   const title = input.type === "pregnancy" ? `The Day You Became Our Little Star`
@@ -165,6 +166,13 @@ export function generateMockStory(input: {
       image: coverImg },
   ];
 
+  // If custom cartoon images were provided (from user's photos), override the stock images.
+  if (input.images && input.images.length > 0) {
+    const imgs = input.images;
+    pages.forEach((p, i) => { p.image = imgs[i % imgs.length]; });
+  }
+
+
   return {
     id: crypto.randomUUID(),
     title,
@@ -172,7 +180,7 @@ export function generateMockStory(input: {
     type: input.type,
     vibe: input.vibe,
     illustration: input.illustration,
-    cover: coverImg,
+    cover: input.images?.[0] || coverImg,
     pages,
     createdAt: new Date().toISOString(),
   };
