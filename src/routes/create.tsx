@@ -35,6 +35,9 @@ function Create() {
   const search = Route.useSearch();
   const [step, setStep] = useState(0);
   const [type, setType] = useState<string>(search.type || "");
+  const [coverPhoto, setCoverPhoto] = useState<
+    { url: string; name: string; file: File } | null
+  >(null);
   const [photos, setPhotos] = useState<
     { url: string; label?: string; name: string; file?: File }[]
   >([]);
