@@ -81,6 +81,23 @@ function Create() {
         r.readAsDataURL(f);
       });
 
+      const downscale = (dataUrl: string, maxW = 720, quality = 0.82) =>
+        new Promise<string>((res) => {
+          const img = new Image();
+          img.onload = () => {
+            const scale = Math.min(1, maxW / img.width);
+            const w = Math.round(img.width * scale);
+            const h = Math.round(img.height * scale);
+            const c = document.createElement("canvas");
+            c.width = w; c.height = h;
+            const ctx = c.getContext("2d")!;
+            ctx.drawImage(img, 0, 0, w, h);
+            res(c.toDataURL("image/jpeg", quality));
+          };
+          img.onerror = () => res(dataUrl);
+          img.src = dataUrl;
+        });
+
       const sources = photos.filter((p) => p.file);
       let images: string[] = [];
       if (sources.length > 0) {
@@ -90,7 +107,7 @@ function Create() {
           const prompt = `Redraw this photo as a ${style}. ${hint}. Family-friendly, warm and tender, no text, no logos, keep recognizable likeness of the people but in cartoon form.`;
           try {
             const { url } = await cartoonify({ data: { imageDataUrl: src, prompt } });
-            return url;
+            return await downscale(url);
           } catch (e) {
             console.error("cartoonify failed", e);
             return null;
