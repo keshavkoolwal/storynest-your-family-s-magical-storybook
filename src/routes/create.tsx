@@ -5,7 +5,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Upload, X, Mic, Sparkles, Check } from "lucide-react";
-import { STORY_TYPES, VIBES, ILLUSTRATIONS, FAMILY_TYPES, PHOTO_LABELS, generateMockStory, saveStory } from "@/lib/storynest";
+import {
+  STORY_TYPES,
+  VIBES,
+  ILLUSTRATIONS,
+  FAMILY_TYPES,
+  PHOTO_LABELS,
+  generateMockStory,
+  saveStory,
+} from "@/lib/storynest";
 import { cartoonifyImage } from "@/lib/cartoonify.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -14,7 +22,9 @@ type Search = { type?: string };
 
 export const Route = createFileRoute("/create")({
   head: () => ({ meta: [{ title: "Create your storybook · StoryNest" }] }),
-  validateSearch: (s: Record<string, unknown>): Search => ({ type: typeof s.type === "string" ? s.type : undefined }),
+  validateSearch: (s: Record<string, unknown>): Search => ({
+    type: typeof s.type === "string" ? s.type : undefined,
+  }),
   component: Create,
 });
 
@@ -25,8 +35,16 @@ function Create() {
   const search = Route.useSearch();
   const [step, setStep] = useState(0);
   const [type, setType] = useState<string>(search.type || "");
-  const [photos, setPhotos] = useState<{ url: string; label?: string; name: string; file?: File }[]>([]);
-  const [prompts, setPrompts] = useState({ what: "", who: "", special: "", feeling: "", message: "" });
+  const [photos, setPhotos] = useState<
+    { url: string; label?: string; name: string; file?: File }[]
+  >([]);
+  const [prompts, setPrompts] = useState({
+    what: "",
+    who: "",
+    special: "",
+    feeling: "",
+    message: "",
+  });
   const [family, setFamily] = useState("");
   const [childName, setChildName] = useState("");
   const [momName, setMomName] = useState("");
@@ -74,12 +92,13 @@ function Create() {
         "closing keepsake scene, dreamy and hopeful",
       ];
 
-      const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result as string);
-        r.onerror = rej;
-        r.readAsDataURL(f);
-      });
+      const fileToDataUrl = (f: File) =>
+        new Promise<string>((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result as string);
+          r.onerror = rej;
+          r.readAsDataURL(f);
+        });
 
       const downscale = (dataUrl: string, maxW = 720, quality = 0.82) =>
         new Promise<string>((res) => {
@@ -89,7 +108,8 @@ function Create() {
             const w = Math.round(img.width * scale);
             const h = Math.round(img.height * scale);
             const c = document.createElement("canvas");
-            c.width = w; c.height = h;
+            c.width = w;
+            c.height = h;
             const ctx = c.getContext("2d")!;
             ctx.drawImage(img, 0, 0, w, h);
             res(c.toDataURL("image/jpeg", quality));
@@ -102,22 +122,39 @@ function Create() {
       let images: string[] = [];
       if (sources.length > 0) {
         const dataUrls = await Promise.all(sources.map((p) => fileToDataUrl(p.file!)));
-        const tasks = sceneHints.map(async (hint, i) => {
-          const src = dataUrls[i % dataUrls.length];
+        const compactUploads = await Promise.all(dataUrls.map((url) => downscale(url, 960, 0.84)));
+
+        // Always personalize the story with the uploaded photos. AI cartoonification is an enhancement,
+        // but if it fails or times out, the book must still use the family's real pictures — never stock art.
+        images = sceneHints.map((_, i) => compactUploads[i % compactUploads.length]);
+
+        const cartoonImages: string[] = [];
+        for (let i = 0; i < sceneHints.length; i += 1) {
+          const hint = sceneHints[i];
+          const src = compactUploads[i % compactUploads.length];
           const prompt = `Transform the attached photograph into a ${style}. CRITICAL: keep the SAME people from the photo — preserve their faces, hair, skin tone, body shape, clothing colors, and the overall composition/pose of the original photo. Do NOT invent new characters. Re-render the existing photo in cartoon form, like a stylized illustration of THIS exact image. Mood: ${hint}. Family-friendly, warm, tender, no text, no logos, no watermarks.`;
           try {
             const { url } = await cartoonify({ data: { imageDataUrl: src, prompt } });
-            return await downscale(url);
+            cartoonImages.push(await downscale(url));
           } catch (e) {
             console.error("cartoonify failed", e);
-            return null;
           }
-        });
-        const results = await Promise.all(tasks);
-        images = results.filter((x): x is string => !!x);
+        }
+
+        if (cartoonImages.length > 0)
+          images = sceneHints.map((_, i) => cartoonImages[i % cartoonImages.length]);
       }
 
-      const story = generateMockStory({ type, vibe, illustration, childName, momName, dedication, prompts, images });
+      const story = generateMockStory({
+        type,
+        vibe,
+        illustration,
+        childName,
+        momName,
+        dedication,
+        prompts,
+        images,
+      });
       saveStory(story);
       toast.success("Your storybook is ready ✨");
       navigate({ to: "/story/$id", params: { id: story.id } });
@@ -133,11 +170,16 @@ function Create() {
       {/* Progress */}
       <div className="mb-8">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-          <span>Step {step + 1} of {STEPS.length}</span>
+          <span>
+            Step {step + 1} of {STEPS.length}
+          </span>
           <span>{STEPS[step]}</span>
         </div>
         <div className="h-2 rounded-full bg-secondary overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-primary via-[color:var(--lavender)] to-[color:var(--peach)] transition-all" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+          <div
+            className="h-full bg-gradient-to-r from-primary via-[color:var(--lavender)] to-[color:var(--peach)] transition-all"
+            style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+          />
         </div>
       </div>
 
@@ -163,24 +205,53 @@ function Create() {
         )}
 
         {step === 2 && (
-          <Step title="Tell us the memory" subtitle="No writing skills needed — just your memories.">
+          <Step
+            title="Tell us the memory"
+            subtitle="No writing skills needed — just your memories."
+          >
             <div className="grid gap-4">
               <Field label="What happened in these photos?">
-                <Textarea rows={2} value={prompts.what} onChange={(e) => setPrompts({ ...prompts, what: e.target.value })} placeholder="The day we found out, the first kick, our hospital morning…" />
+                <Textarea
+                  rows={2}
+                  value={prompts.what}
+                  onChange={(e) => setPrompts({ ...prompts, what: e.target.value })}
+                  placeholder="The day we found out, the first kick, our hospital morning…"
+                />
               </Field>
               <Field label="Who is in this story?">
-                <Input value={prompts.who} onChange={(e) => setPrompts({ ...prompts, who: e.target.value })} placeholder="Mama, Papa, baby Sienna and her bunny" />
+                <Input
+                  value={prompts.who}
+                  onChange={(e) => setPrompts({ ...prompts, who: e.target.value })}
+                  placeholder="Mama, Papa, baby Sienna and her bunny"
+                />
               </Field>
               <Field label="What made this moment special?">
-                <Textarea rows={2} value={prompts.special} onChange={(e) => setPrompts({ ...prompts, special: e.target.value })} placeholder="The way she smiled when she heard your voice…" />
+                <Textarea
+                  rows={2}
+                  value={prompts.special}
+                  onChange={(e) => setPrompts({ ...prompts, special: e.target.value })}
+                  placeholder="The way she smiled when she heard your voice…"
+                />
               </Field>
               <Field label="What feeling should the story have?">
-                <Input value={prompts.feeling} onChange={(e) => setPrompts({ ...prompts, feeling: e.target.value })} placeholder="Cozy, magical, brave, tender…" />
+                <Input
+                  value={prompts.feeling}
+                  onChange={(e) => setPrompts({ ...prompts, feeling: e.target.value })}
+                  placeholder="Cozy, magical, brave, tender…"
+                />
               </Field>
               <Field label="What message should your child remember?">
-                <Textarea rows={2} value={prompts.message} onChange={(e) => setPrompts({ ...prompts, message: e.target.value })} placeholder="You were wished for, loved, and so very wanted." />
+                <Textarea
+                  rows={2}
+                  value={prompts.message}
+                  onChange={(e) => setPrompts({ ...prompts, message: e.target.value })}
+                  placeholder="You were wished for, loved, and so very wanted."
+                />
               </Field>
-              <button type="button" className="self-start inline-flex items-center gap-2 rounded-full bg-secondary/70 hover:bg-secondary px-4 py-2 text-sm">
+              <button
+                type="button"
+                className="self-start inline-flex items-center gap-2 rounded-full bg-secondary/70 hover:bg-secondary px-4 py-2 text-sm"
+              >
                 <Mic className="h-4 w-4" /> Record a memory instead
               </button>
             </div>
@@ -191,14 +262,44 @@ function Create() {
           <Step title="Your family" subtitle="Every family story is welcome here.">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {FAMILY_TYPES.map((f) => (
-                <button key={f} onClick={() => setFamily(f)} className={`rounded-2xl px-3 py-3 text-sm border transition ${family === f ? "bg-primary text-primary-foreground border-transparent" : "bg-card hover:bg-secondary border-border"}`}>{f}</button>
+                <button
+                  key={f}
+                  onClick={() => setFamily(f)}
+                  className={`rounded-2xl px-3 py-3 text-sm border transition ${family === f ? "bg-primary text-primary-foreground border-transparent" : "bg-card hover:bg-secondary border-border"}`}
+                >
+                  {f}
+                </button>
               ))}
             </div>
             <div className="grid sm:grid-cols-2 gap-3 mt-6">
-              <Field label="Child's name"><Input value={childName} onChange={(e) => setChildName(e.target.value)} placeholder="Sienna" /></Field>
-              <Field label="Mom's name"><Input value={momName} onChange={(e) => setMomName(e.target.value)} placeholder="Maya" /></Field>
-              <Field label="Partner / family names (optional)"><Input value={partner} onChange={(e) => setPartner(e.target.value)} placeholder="Sam, Grandma Rose…" /></Field>
-              <Field label="Dedication line"><Input value={dedication} onChange={(e) => setDedication(e.target.value)} placeholder="For our little star, with all our love." /></Field>
+              <Field label="Child's name">
+                <Input
+                  value={childName}
+                  onChange={(e) => setChildName(e.target.value)}
+                  placeholder="Sienna"
+                />
+              </Field>
+              <Field label="Mom's name">
+                <Input
+                  value={momName}
+                  onChange={(e) => setMomName(e.target.value)}
+                  placeholder="Maya"
+                />
+              </Field>
+              <Field label="Partner / family names (optional)">
+                <Input
+                  value={partner}
+                  onChange={(e) => setPartner(e.target.value)}
+                  placeholder="Sam, Grandma Rose…"
+                />
+              </Field>
+              <Field label="Dedication line">
+                <Input
+                  value={dedication}
+                  onChange={(e) => setDedication(e.target.value)}
+                  placeholder="For our little star, with all our love."
+                />
+              </Field>
             </div>
           </Step>
         )}
@@ -217,10 +318,17 @@ function Create() {
         )}
 
         {step === 5 && (
-          <Step title="Choose an illustration style" subtitle="We'll turn your photos into family-friendly cartoon illustrations.">
+          <Step
+            title="Choose an illustration style"
+            subtitle="We'll turn your photos into family-friendly cartoon illustrations."
+          >
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {ILLUSTRATIONS.map((i) => (
-                <button key={i.id} onClick={() => setIllustration(i.id)} className={`rounded-3xl overflow-hidden text-left border-2 transition ${illustration === i.id ? "border-primary shadow-[var(--shadow-soft)]" : "border-transparent hover:border-border"}`}>
+                <button
+                  key={i.id}
+                  onClick={() => setIllustration(i.id)}
+                  className={`rounded-3xl overflow-hidden text-left border-2 transition ${illustration === i.id ? "border-primary shadow-[var(--shadow-soft)]" : "border-transparent hover:border-border"}`}
+                >
                   <div className={`aspect-[4/3] bg-gradient-to-br ${i.swatch}`} />
                   <div className="p-3 bg-card">
                     <p className="font-display">{i.title}</p>
@@ -228,12 +336,22 @@ function Create() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-4">Photos are transformed into cozy, family-friendly cartoon illustrations — never used for anything else.</p>
+            <p className="text-xs text-muted-foreground mt-4">
+              Photos are transformed into cozy, family-friendly cartoon illustrations — never used
+              for anything else.
+            </p>
           </Step>
         )}
 
         {step === 6 && (
-          <Step title={generating ? "Sprinkling story magic…" : "Ready to create your storybook"} subtitle={generating ? undefined : "We'll turn your memories into a beautiful illustrated keepsake."}>
+          <Step
+            title={generating ? "Sprinkling story magic…" : "Ready to create your storybook"}
+            subtitle={
+              generating
+                ? undefined
+                : "We'll turn your memories into a beautiful illustrated keepsake."
+            }
+          >
             {generating ? (
               <GeneratingAnimation />
             ) : (
@@ -243,7 +361,10 @@ function Create() {
                 <Summary k="Family" v={family || "—"} />
                 <Summary k="For" v={childName || "your little one"} />
                 <Summary k="Vibe" v={VIBES.find((x) => x.id === vibe)?.title || "—"} />
-                <Summary k="Illustration" v={ILLUSTRATIONS.find((x) => x.id === illustration)?.title || "—"} />
+                <Summary
+                  k="Illustration"
+                  v={ILLUSTRATIONS.find((x) => x.id === illustration)?.title || "—"}
+                />
                 <Button size="lg" className="rounded-full mt-4 h-12" onClick={generate}>
                   <Sparkles className="h-4 w-4" /> Generate my storybook
                 </Button>
@@ -269,7 +390,15 @@ function Create() {
   );
 }
 
-function Step({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function Step({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <h2 className="font-display text-2xl md:text-3xl">{title}</h2>
@@ -288,11 +417,26 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SelectCard({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function SelectCard({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <button onClick={onClick} className={`text-left rounded-3xl p-4 border-2 transition ${active ? "border-primary bg-primary/5 shadow-[var(--shadow-soft)]" : "border-border bg-card hover:bg-secondary/50"}`}>
+    <button
+      onClick={onClick}
+      className={`text-left rounded-3xl p-4 border-2 transition ${active ? "border-primary bg-primary/5 shadow-[var(--shadow-soft)]" : "border-border bg-card hover:bg-secondary/50"}`}
+    >
       {children}
-      {active && <span className="inline-flex items-center gap-1 mt-2 text-xs text-primary"><Check className="h-3 w-3" /> Selected</span>}
+      {active && (
+        <span className="inline-flex items-center gap-1 mt-2 text-xs text-primary">
+          <Check className="h-3 w-3" /> Selected
+        </span>
+      )}
     </button>
   );
 }
@@ -307,7 +451,12 @@ function Summary({ k, v }: { k: string; v: string }) {
 }
 
 function GeneratingAnimation() {
-  const messages = ["Sprinkling story magic…", "Turning memories into pages…", "Painting your little moments…", "Writing something beautiful…"];
+  const messages = [
+    "Sprinkling story magic…",
+    "Turning memories into pages…",
+    "Painting your little moments…",
+    "Writing something beautiful…",
+  ];
   const [i, setI] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setI((x) => (x + 1) % messages.length), 800);
@@ -327,7 +476,13 @@ function GeneratingAnimation() {
   );
 }
 
-function PhotoUploader({ photos, setPhotos }: { photos: { url: string; label?: string; name: string; file?: File }[]; setPhotos: (p: { url: string; label?: string; name: string; file?: File }[]) => void }) {
+function PhotoUploader({
+  photos,
+  setPhotos,
+}: {
+  photos: { url: string; label?: string; name: string; file?: File }[];
+  setPhotos: (p: { url: string; label?: string; name: string; file?: File }[]) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
 
@@ -341,33 +496,64 @@ function PhotoUploader({ photos, setPhotos }: { photos: { url: string; label?: s
   return (
     <div>
       <div
-        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
         onDragLeave={() => setDrag(false)}
-        onDrop={(e) => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDrag(false);
+          handleFiles(e.dataTransfer.files);
+        }}
         onClick={() => inputRef.current?.click()}
         className={`rounded-3xl border-2 border-dashed p-10 text-center cursor-pointer transition ${drag ? "border-primary bg-primary/5" : "border-border hover:bg-secondary/40"}`}
       >
         <Upload className="h-7 w-7 mx-auto text-primary" />
         <p className="font-display text-lg mt-2">Drag & drop your photos</p>
         <p className="text-sm text-muted-foreground">or tap to browse — JPG / PNG / HEIC</p>
-        <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
       </div>
 
       {photos.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5">
           {photos.map((p, idx) => (
             <div key={idx} className="cozy-card p-2 relative">
-              <button onClick={() => setPhotos(photos.filter((_, i) => i !== idx))} className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-background/90 grid place-items-center shadow"><X className="h-3.5 w-3.5" /></button>
+              <button
+                onClick={() => setPhotos(photos.filter((_, i) => i !== idx))}
+                className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-background/90 grid place-items-center shadow"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
               <img src={p.url} alt="" className="aspect-square object-cover rounded-2xl w-full" />
-              <select value={p.label || ""} onChange={(e) => { const n = [...photos]; n[idx] = { ...p, label: e.target.value }; setPhotos(n); }} className="mt-2 w-full text-xs rounded-full bg-secondary px-3 py-1.5 outline-none">
+              <select
+                value={p.label || ""}
+                onChange={(e) => {
+                  const n = [...photos];
+                  n[idx] = { ...p, label: e.target.value };
+                  setPhotos(n);
+                }}
+                className="mt-2 w-full text-xs rounded-full bg-secondary px-3 py-1.5 outline-none"
+              >
                 <option value="">Add label (optional)</option>
-                {PHOTO_LABELS.map((l) => <option key={l}>{l}</option>)}
+                {PHOTO_LABELS.map((l) => (
+                  <option key={l}>{l}</option>
+                ))}
               </select>
             </div>
           ))}
         </div>
       )}
-      <p className="text-xs text-muted-foreground mt-3">{photos.length}/8 photos · we recommend 3–8</p>
+      <p className="text-xs text-muted-foreground mt-3">
+        {photos.length}/8 photos · we recommend 3–8
+      </p>
     </div>
   );
 }
